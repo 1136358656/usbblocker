@@ -1,0 +1,5 @@
+E:\Projects\USBBlocker\USBBlocker\bin\Debug\USBBlocker.exe.config
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csprojResolveAssemblyReference.cache
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Form1.resources
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Properties.Resources.resources
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csproj.GenerateResource.Cache
