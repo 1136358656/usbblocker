@@ -1,6 +1,13 @@
 E:\Projects\USBBlocker\USBBlocker\bin\Debug\USBBlocker.exe.config
-E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csprojResolveAssemblyReference.cache
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Form1.resources
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Properties.Resources.resources
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csproj.GenerateResource.Cache
+E:\Projects\USBBlocker\USBBlocker\bin\Debug\USBBlocker.exe
+E:\Projects\USBBlocker\USBBlocker\bin\Debug\USBBlocker.pdb
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.exe
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.pdb
+E:\Projects\USBBlocker\USBBlocker\bin\Debug\Yeylol.UsbEject.dll
+E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csprojResolveAssemblyReference.cache
 C:\Users\Kaguya\Source\Repos\usbblocker\USBBlocker\bin\Debug\USBBlocker.exe.config
+C:\Users\Kaguya\Source\Repos\usbblocker\USBBlocker\obj\Debug\USBBlocker.exe
+C:\Users\Kaguya\Source\Repos\usbblocker\USBBlocker\obj\Debug\USBBlocker.pdb
