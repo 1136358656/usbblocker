@@ -3,3 +3,4 @@ E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csprojResolveAssemblyRefe
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Form1.resources
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.Properties.Resources.resources
 E:\Projects\USBBlocker\USBBlocker\obj\Debug\USBBlocker.csproj.GenerateResource.Cache
+C:\Users\Kaguya\Source\Repos\usbblocker\USBBlocker\bin\Debug\USBBlocker.exe.config
