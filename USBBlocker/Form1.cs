@@ -30,7 +30,9 @@ namespace USBBlocker
             InitializeComponent();
         }
         public Hashtable DiskFile = new Hashtable();
+        public Hashtable RiskFile = new Hashtable();
         public  ArrayList UsbDisk = new ArrayList();
+        public DiskStatus[] DiskStatus= new DiskStatus[10];
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
         private delegate void SetTextCallback(string text);
@@ -114,6 +116,7 @@ namespace USBBlocker
                     foreach (string x in Removable1)
                     {
                         this.dir = x;
+                        this.AddDiskStatus(x, false);
                         this.HandleUsbDevice(x,0);
                         //MessageBox.Show(x);
                         Thread t1 = new Thread(new ThreadStart(GetFile));
@@ -124,6 +127,14 @@ namespace USBBlocker
                     {
                         listBox1.Items.Clear();
                         listBox1.Items.Add(n);
+                    }
+                    foreach(DiskStatus x in this.DiskStatus)
+                    {
+                        if (x != null)
+                        {
+                            MessageBox.Show(x.Disk + "\r\n" + x.Completed.ToString());
+                        }
+                        
                     }
                     break;
                 case DeviceEvent.DBT_DEVICEREMOVECOMPLETE://[REmove]
@@ -153,8 +164,15 @@ namespace USBBlocker
                     listBox1.Items.Clear();
                     foreach (string n in this.UsbDisk)
                     {
-                        
                         listBox1.Items.Add(n);
+                    }
+                    foreach (DiskStatus x in this.DiskStatus)
+                    {
+                        if (x != null)
+                        {
+                            MessageBox.Show(x.Disk + "\r\n"+x.Completed.ToString());
+                        }
+
                     }
                     //MessageBox.Show("Remove Complete At Moment!", "Remove");
                     break;
@@ -165,40 +183,66 @@ namespace USBBlocker
                     break;
             }
         }
-
+        public static FileSystemInfo[] GetFileInfo(DirectoryInfo dir)
+        {
+            try
+            {
+                FileSystemInfo[] files = dir.GetFileSystemInfos();
+                return files;
+            }
+            catch
+            {
+                return null;
+            }
+        }
         public   static   ArrayList   ListFiles(FileSystemInfo   info) 
-　　{ 
+　　{
             ArrayList File = new ArrayList();
             ArrayList temp = null;
 　　　　if(!info.Exists)   return null;
 
 　　　　DirectoryInfo   dir   =   info   as   DirectoryInfo; 
+            
 　　　　//不是目录 
 　　　　if(dir   ==   null)   return null;
 
-　　　　FileSystemInfo   []   files   =   dir.GetFileSystemInfos(); 
-　　　　for(int   i   =   0;   i   <   files.Length;   i++) 
-　　　　{ 
-　　　　　　FileInfo   file   =   files[i]   as   FileInfo; 
-　　　　　　//是文件 
-　　　　　　if(file   !=   null){
-          File.Add(file.FullName);
-          //对于子目录，进行递归调用 
-      }else
-      {
-          temp = ListFiles(files[i]);
-          foreach (string x in temp)
-          {
-              File.Add(x);
-          }
-      }
-          
-                 
-      
-　　　　　　　　
+            FileSystemInfo[] files = GetFileInfo(dir);
+            if (files == null)
+            {
+                return null;
+            }
+                for (int i = 0; i < files.Length; i++)
+                {
+                    FileInfo file = files[i] as FileInfo;
+                    //是文件 
+                    if (file != null)
+                    {
+                        File.Add(file.FullName);
+                        //对于子目录，进行递归调用 
+                    }
+                    else
+                    {
+                        temp = ListFiles(files[i]);
+                    if (temp != null) {
+                        foreach (string x in temp)
+                        {
+                            File.Add(x);
+                            //MessageBox.Show(x);
+                            System.Console.WriteLine(x);
+                        }
+                    }
+                        
+                    }
 
-　　　　}
-            return File;
+
+
+
+
+                }
+                return File;
+            
+            
+　　　　
  
 　　}
         public string dir="";
@@ -207,12 +251,14 @@ namespace USBBlocker
             ArrayList y = ListFiles(new DirectoryInfo(this.dir));
             if (this.DiskFile.ContainsKey(this.dir) == true) { this.DiskFile.Remove(this.dir); }
             this.DiskFile.Add(this.dir,y);
+            this.UpdateDiskStatus(this.dir, true);
         }
         private void SetText(string text)
         {
             // InvokeRequired required compares the thread ID of the
             // calling thread to the thread ID of the creating thread.
             // If these threads are different, it returns true.
+
             if (this.textBox1.InvokeRequired)
             {
                 SetTextCallback d = new SetTextCallback(SetText);
@@ -225,6 +271,14 @@ namespace USBBlocker
         }
         public int Eject(string LogicalDisk)
         {
+            foreach (DiskStatus x in this.DiskStatus)
+            {
+                if (x != null)
+                {
+                    MessageBox.Show(x.Disk + x.Completed.ToString());
+                }
+
+            }
             VolumeDeviceClass volumeDeviceClass = new VolumeDeviceClass();
             foreach (Volume device in volumeDeviceClass.Devices)
             {
@@ -237,8 +291,10 @@ namespace USBBlocker
                     continue;
                 if (device.LogicalDrive.ToString() + "\\" == LogicalDisk)
                 {
-                    device.Eject(true); // allow Windows to display any relevant UI
-                    MessageBox.Show(device.LogicalDrive.ToString());
+                    device.Eject(true);
+                    this.DelDiskStatus(LogicalDisk);
+                    // allow Windows to display any relevant UI
+                    //MessageBox.Show(device.LogicalDrive.ToString());
                 }
                 else
                 {
@@ -320,18 +376,128 @@ namespace USBBlocker
         }
         public ArrayList FileFilter(ArrayList Filelist)
         {
-            string pat = @"*.exe$";
+            string pat1 = @"*.exe$";
             ArrayList result = new ArrayList();
-            Regex mc = new Regex(pat, RegexOptions.IgnoreCase);
+            Regex mc1 = new Regex(pat1, RegexOptions.IgnoreCase);
             foreach (string file in Filelist)
             {
-                if (mc.IsMatch(file))
+                if (mc1.IsMatch(file))
+                {
+                    result.Add(file);
+                }
+            }
+            string pat2 = @"*.js$";
+            Regex mc2 = new Regex(pat2, RegexOptions.IgnoreCase);
+            foreach (string file in Filelist)
+            {
+                if (mc2.IsMatch(file))
+                {
+                    result.Add(file);
+                }
+            }
+            string pat3 = @"*.vbs$";
+            Regex mc3 = new Regex(pat3, RegexOptions.IgnoreCase);
+            foreach (string file in Filelist)
+            {
+                if (mc3.IsMatch(file))
                 {
                     result.Add(file);
                 }
             }
             return result;
         }
+        public  void Global_Filter()
+        {
+            ArrayList ExecFile = new ArrayList();
+            foreach(string disk in this.UsbDisk)
+            {
+                ExecFile = this.DiskFile[disk];
+            }
+        }
+        public  void AddDiskStatus(string Disk,Boolean Completed)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (this.DiskStatus[i] == null)
+                {
+                    this.DiskStatus[i] = new DiskStatus();
+                    this.DiskStatus[i].Disk = Disk;
+                    this.DiskStatus[i].Completed = Completed;
+                    return;
+                }
+                else
+                {
+                    if (this.DiskStatus[i].Disk == "")
+                    {
+                        this.DiskStatus[i].Disk = Disk;
+                        this.DiskStatus[i].Completed = Completed;
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+            }          
+        }
+        public void UpdateDiskStatus(string Disk,Boolean Completed)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (this.DiskStatus[i] != null)
+                {
+                    //this.DiskStatus[i] = new DiskStatus();
+                    this.DiskStatus[i].Disk = Disk;
+                    this.DiskStatus[i].Completed = Completed;
+                    continue;
+                }
+                
+            }
+        }
+        public void DelDiskStatus(string Disk)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (this.DiskStatus[i] != null)
+                {
+                    if (this.DiskStatus[i].Disk == Disk)
+                    {
+                        this.DiskStatus[i] = null;
+                    }
+                    continue;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+        }
+        public int GetDiskStatus(string Disk)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (this.DiskStatus[i].Disk == Disk)
+                {
+                    if (this.DiskStatus[i].Completed == true)
+                    {
+                        return 1;
+                    }
+                    else
+                    {
+                        if (this.DiskStatus[i].Completed == false)
+                        {
+                            return 0;
+                        }
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            return -1;
+        }
+        
 }
        
 
@@ -355,4 +521,9 @@ namespace USBBlocker
           int dwFlags // animation type 
           );
     }
+public class DiskStatus
+{
+    public string Disk;
+    public Boolean Completed;
+}
 
