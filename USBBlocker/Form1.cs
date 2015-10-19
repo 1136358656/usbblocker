@@ -31,6 +31,7 @@ namespace USBBlocker
         }
         public Hashtable DiskFile = new Hashtable();
         public Hashtable RiskFile = new Hashtable();
+        public Hashtable BlockedFile = new Hashtable();
         public  ArrayList UsbDisk = new ArrayList();
         public DiskStatus[] DiskStatus= new DiskStatus[10];
         [DllImport("user32.dll")]
@@ -69,10 +70,15 @@ namespace USBBlocker
             this.Opacity = 0.7;
             Win32.AnimateWindow(this.Handle, 400, Win32.AW_VER_POSITIVE);
             ArrayList Removable1 = this.GetRemovableDisk();
+            this.DiskFile.Clear();
             foreach (string x in Removable1)
             {
+                //System.Console.WriteLine(x);
                 this.dir = x;
+                this.AddDiskStatus(x, false);
+                System.Console.WriteLine(this.DiskStatus[0]);
                 this.HandleUsbDevice(x, 0);
+                //MessageBox.Show(x);
                 Thread t1 = new Thread(new ThreadStart(GetFile));
                 t1.Start();
 
@@ -83,6 +89,16 @@ namespace USBBlocker
                 listBox1.Items.Add(n);
             }
             
+            foreach (DiskStatus x in this.DiskStatus)
+            {
+                if (x != null)
+                {
+                    //MessageBox.Show(x.Disk + "\r\n" + x.Completed.ToString());
+                    
+                }
+
+            }
+
         }
         public enum DeviceEvent : int
         {
@@ -115,8 +131,10 @@ namespace USBBlocker
                     this.DiskFile.Clear();
                     foreach (string x in Removable1)
                     {
+                        //System.Console.WriteLine(x);
                         this.dir = x;
                         this.AddDiskStatus(x, false);
+                        System.Console.WriteLine(this.DiskStatus[0]);
                         this.HandleUsbDevice(x,0);
                         //MessageBox.Show(x);
                         Thread t1 = new Thread(new ThreadStart(GetFile));
@@ -132,10 +150,11 @@ namespace USBBlocker
                     {
                         if (x != null)
                         {
-                            MessageBox.Show(x.Disk + "\r\n" + x.Completed.ToString());
+                            //MessageBox.Show(x.Disk + "\r\n" + x.Completed.ToString());
                         }
                         
                     }
+                    //MessageBox.Show(this.DiskStatus[11].ToString());
                     break;
                 case DeviceEvent.DBT_DEVICEREMOVECOMPLETE://[REmove]
                     this.CheckDeviceStatus_Lable.BackColor = Color.Red;
@@ -145,7 +164,7 @@ namespace USBBlocker
                     foreach (string x in Removable2)
                     {
                         this.dir = x;
-                        this.HandleUsbDevice(x,1);
+                        this.HandleUsbDevice(x,0);
                         //MessageBox.Show(x);
                     }
                     ArrayList RemovedDisk = new ArrayList();
@@ -228,7 +247,7 @@ namespace USBBlocker
                         {
                             File.Add(x);
                             //MessageBox.Show(x);
-                            System.Console.WriteLine(x);
+                            //System.Console.WriteLine(x);
                         }
                     }
                         
@@ -251,6 +270,12 @@ namespace USBBlocker
             ArrayList y = ListFiles(new DirectoryInfo(this.dir));
             if (this.DiskFile.ContainsKey(this.dir) == true) { this.DiskFile.Remove(this.dir); }
             this.DiskFile.Add(this.dir,y);
+            Global_Filter();
+            foreach(string disk in this.UsbDisk)
+            {
+                //System.Console.WriteLine(disk);
+                this.BlockRiskFile(disk);
+            }
             this.UpdateDiskStatus(this.dir, true);
         }
         private void SetText(string text)
@@ -271,27 +296,24 @@ namespace USBBlocker
         }
         public int Eject(string LogicalDisk)
         {
-            foreach (DiskStatus x in this.DiskStatus)
-            {
-                if (x != null)
-                {
-                    MessageBox.Show(x.Disk + x.Completed.ToString());
-                }
-
-            }
+            //MessageBox.Show("ejected");
             VolumeDeviceClass volumeDeviceClass = new VolumeDeviceClass();
             foreach (Volume device in volumeDeviceClass.Devices)
             {
                 // is this volume on USB disks?
                 if (!device.IsUsb)
                     continue;
-
+                //MessageBox.Show("ejected");
                 // is this volume a logical disk?
                 if ((device.LogicalDrive == null) || (device.LogicalDrive.Length == 0))
                     continue;
                 if (device.LogicalDrive.ToString() + "\\" == LogicalDisk)
                 {
-                    device.Eject(true);
+                    //MessageBox.Show("ejected");
+                    //MessageBox.Show( device.Eject(true));
+                    string str = device.Eject(true);
+                    //MessageBox.Show(str);
+                    System.Console.WriteLine(str);
                     this.DelDiskStatus(LogicalDisk);
                     // allow Windows to display any relevant UI
                     //MessageBox.Show(device.LogicalDrive.ToString());
@@ -366,7 +388,19 @@ namespace USBBlocker
         {
             //MessageBox.Show(listBox1.SelectedItem.ToString());
             if (listBox1.SelectedItem==null) { return; }
-            Eject(listBox1.SelectedItem.ToString());
+            if (this.GetDiskStatus(listBox1.SelectedItem.ToString()) == 1){
+                //MessageBox.Show(this.GetDiskStatus(listBox1.SelectedItem.ToString()).ToString());
+                UnblockRiskFile(listBox1.SelectedItem.ToString());
+                Eject(listBox1.SelectedItem.ToString());
+            }
+            else
+            {
+                if (this.GetDiskStatus(listBox1.SelectedItem.ToString()) == 1)
+                {
+                    MessageBox.Show("设备正在使用，请稍后再试");
+                }
+            }
+            
         }
 
         private void label1_Click(object sender, EventArgs e)
@@ -376,17 +410,19 @@ namespace USBBlocker
         }
         public ArrayList FileFilter(ArrayList Filelist)
         {
-            string pat1 = @"*.exe$";
+            string pat1 = @".exe$";
             ArrayList result = new ArrayList();
             Regex mc1 = new Regex(pat1, RegexOptions.IgnoreCase);
             foreach (string file in Filelist)
             {
+                //System.Console.WriteLine(file);
+                //System.Console.WriteLine(mc1.IsMatch(file));
                 if (mc1.IsMatch(file))
                 {
                     result.Add(file);
                 }
             }
-            string pat2 = @"*.js$";
+            string pat2 = @".js$";
             Regex mc2 = new Regex(pat2, RegexOptions.IgnoreCase);
             foreach (string file in Filelist)
             {
@@ -395,7 +431,7 @@ namespace USBBlocker
                     result.Add(file);
                 }
             }
-            string pat3 = @"*.vbs$";
+            string pat3 = @".vbs$";
             Regex mc3 = new Regex(pat3, RegexOptions.IgnoreCase);
             foreach (string file in Filelist)
             {
@@ -411,18 +447,59 @@ namespace USBBlocker
             ArrayList ExecFile = new ArrayList();
             foreach(string disk in this.UsbDisk)
             {
-                ExecFile = this.DiskFile[disk];
+                System.Console.WriteLine(disk);
+                ExecFile =this.FileFilter((ArrayList)this.DiskFile[disk]);
+                if (RiskFile.Contains(disk))
+                {
+                    RiskFile.Remove(disk);
+                }
+                RiskFile.Add(disk, ExecFile);
+                foreach(string xx in ExecFile)
+                {
+                    System.Console.WriteLine(xx);
+                }
+            }
+        }
+        public void BlockRiskFile(string Disk)
+        {
+            //Global_Filter();
+            FileStream file;
+            ArrayList SingleDiskBlockedFile = new ArrayList();
+            foreach (string Riskfile in (ArrayList)RiskFile[Disk])
+            {
+                //SingleDiskBlockedFile 
+                file = new FileStream(Riskfile, FileMode.Append);
+                file.Lock(1, 0);
+                SingleDiskBlockedFile.Add(file);
+                file = null;
+            }
+            if (this.BlockedFile.Contains(Disk))
+            {
+                this.BlockedFile.Remove(Disk);
+            }
+            this.BlockedFile.Add(Disk, SingleDiskBlockedFile);
+            SingleDiskBlockedFile = null;
+        }
+        public void UnblockRiskFile(string Disk)
+        {
+            ArrayList List = (ArrayList)this.BlockedFile[Disk];
+            foreach(FileStream stream in List)
+            {
+                stream.Dispose();
             }
         }
         public  void AddDiskStatus(string Disk,Boolean Completed)
         {
+            //System.Console.WriteLine("success");
             for (int i = 0; i < 10; i++)
             {
+                System.Console.WriteLine("success");
                 if (this.DiskStatus[i] == null)
                 {
                     this.DiskStatus[i] = new DiskStatus();
                     this.DiskStatus[i].Disk = Disk;
                     this.DiskStatus[i].Completed = Completed;
+                    //System.Console.WriteLine("success");
                     return;
                 }
                 else
@@ -497,8 +574,20 @@ namespace USBBlocker
             }
             return -1;
         }
-        
-}
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Global_Filter();
+            FileStream file = new FileStream("J:\\bin\\Debug\\USBBlocker.exe", FileMode.Append);
+            file.Lock(1, 0);
+            FileStream x = file;
+            file = null;
+            //StreamWriter log = new StreamWriter(file);
+            x.Close();
+            //x.Unlock(1, 0);
+            //x.Dispose();
+        }
+    }
        
 
         
